@@ -3,30 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ashley Wave Trials E - Ultimate GD Clone</title>
+<title>Ashley Wave Trials E - Stationary GD Clone</title>
 <style>
-body { margin:0; background:#111; overflow:hidden; font-family:sans-serif; }
-#game-container { position:relative; width:100%; height:100vh; background:#222; }
+/* --- Body & Game Container --- */
+body {
+  margin:0; 
+  overflow:hidden; 
+  font-family:sans-serif; 
+  background: linear-gradient(180deg, #111 0%, #222 100%);
+  transition: background 0.5s linear;
+}
 
+#game-container {
+  position:relative; 
+  width:100%; 
+  height:100vh;
+}
+
+/* --- Player --- */
 .player {
-  position:absolute; width:50px; height:50px;
+  position:absolute; 
+  width:50px; 
+  height:50px;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  transition: all 0.05s linear;
-  box-shadow: 0 0 10px rgba(255,255,255,0.5);
+  background:url('assets/pink-girl.png') no-repeat center;
+  background-size:contain;
+  box-shadow: 0 0 15px rgba(255,255,255,0.7), 0 5px 10px rgba(0,0,0,0.5);
 }
 
-#pink-girl { background:url('assets/pink-girl.png') no-repeat center; background-size:contain; }
-#red-version { background:url('assets/red-version.png') no-repeat center; background-size:contain; }
+/* --- Hazards --- */
+.cog, .spike {
+  position:absolute; 
+  width:60px; 
+  height:60px;
+  background-size:contain;
+  box-shadow: 0 0 10px rgba(255,255,255,0.3), 0 3px 6px rgba(0,0,0,0.3);
+}
+.cog { background:url('assets/cog.png') no-repeat center; }
+.spike { background:url('assets/spike.png') no-repeat center; }
 
+/* --- Portals --- */
 .speed-portal, .dual-portal {
-  position:absolute; width:40px; height:40px; border-radius:50%;
+  position:absolute; 
+  width:40px; 
+  height:40px; 
+  border-radius:50%;
 }
-.speed-portal { background-color:cyan; box-shadow: 0 0 8px cyan; }
-.dual-portal { background-color:magenta; box-shadow: 0 0 8px magenta; }
+.speed-portal { background-color:cyan; color:cyan; box-shadow: 0 0 8px cyan; }
+.dual-portal { background-color:magenta; color:magenta; box-shadow: 0 0 8px magenta; }
 
-.cog { position:absolute; width:60px; height:60px; background:url('assets/cog.png') no-repeat center; background-size:contain; }
-.spike { position:absolute; width:40px; height:40px; background:url('assets/spike.png') no-repeat center; background-size:contain; }
-
+/* --- Combo Display --- */
 .combo-display {
   position:fixed; top:10px; left:50%; transform:translateX(-50%);
   color:white; font-size:24px; font-weight:bold;
@@ -37,147 +63,152 @@ body { margin:0; background:#111; overflow:hidden; font-family:sans-serif; }
 <body>
 <div id="game-container">
   <div id="pink-girl" class="player"></div>
-  <div id="red-version" class="player"></div>
 
-  <!-- Hazards & portals -->
-  <div class="speed-portal" data-speed="1.5" style="bottom:200px; left:350px;"></div>
-  <div class="speed-portal fake" data-speed="1.0" style="bottom:250px; left:600px;"></div>
-  <div class="dual-portal" data-speed="1.8" style="bottom:220px; left:500px;"></div>
-  <div class="cog" style="bottom:150px; left:400px;"></div>
-  <div class="spike" style="bottom:0px; left:300px;"></div>
+  <!-- Hazards & Portals -->
+  <div class="cog" style="bottom:120px; left:200px;"></div>
+  <div class="spike" style="bottom:60px; left:200px;"></div>
+
+  <div class="speed-portal" data-speed="1.5" style="bottom:150px; left:250px;"></div>
+  <div class="cog" style="bottom:80px; left:300px;"></div>
+  <div class="dual-portal" data-speed="1.8" style="bottom:130px; left:350px;"></div>
+  <div class="spike" style="bottom:50px; left:400px;"></div>
+
+  <div class="cog" style="bottom:140px; left:450px;"></div>
+  <div class="speed-portal" data-speed="1.3" style="bottom:100px; left:500px;"></div>
+  <div class="dual-portal" data-speed="1.6" style="bottom:120px; left:550px;"></div>
+  <div class="spike" style="bottom:70px; left:600px;"></div>
+
+  <div class="cog" style="bottom:130px; left:650px;"></div>
+  <div class="speed-portal" data-speed="1.4" style="bottom:90px; left:700px;"></div>
 </div>
 
 <div class="combo-display" id="combo">Combo: 0</div>
 
 <script>
-// === Players & objects ===
+// --- Game Variables ---
 const pinkGirl = document.getElementById('pink-girl');
-const redVersion = document.getElementById('red-version');
 const hazards = [...document.querySelectorAll('.cog, .spike')];
 const portals = [...document.querySelectorAll('.speed-portal')];
 const dualPortals = [...document.querySelectorAll('.dual-portal')];
 const comboDisplay = document.getElementById('combo');
 
-// Store base positions for smooth sine wave motion
-hazards.forEach(h => h.baseBottom = parseInt(h.style.bottom) || 0);
+pinkGirl.style.left = '100px';
+pinkGirl.style.bottom = '100px';
 
-// === Input ===
+// Base positions for sine-wave motion
+[...hazards, ...portals, ...dualPortals].forEach(obj => {
+  obj.baseBottom = parseInt(obj.style.bottom) || 0;
+});
+
 let keys = {};
 document.addEventListener('keydown', e => keys[e.key] = true);
 document.addEventListener('keyup', e => keys[e.key] = false);
 
-let pinkDirection = 0, redDirection = 0;
-let pinkSpeed = 3, redSpeed = 3;
+let pinkDirection = 0;
+let pinkSpeed = 3;
 let combo = 0;
 
-// === Rhythm / beat ===
 let beatInterval = 500;
 let lastBeat = performance.now();
 let sinePhase = 0;
 
-// === Collision detection ===
+// --- Collision ---
 function isColliding(a, b){
   const A = a.getBoundingClientRect();
   const B = b.getBoundingClientRect();
   return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom);
 }
 
-// === Reset player on hazard ===
-function resetPlayer(player, x, y){
-  player.style.left = x + 'px';
+function resetPlayer(player, y){
   player.style.bottom = y + 'px';
-  if(player === pinkGirl) pinkSpeed = 3;
-  if(player === redVersion) redSpeed = 3;
   combo = 0;
   updateCombo();
 }
 
-// === Portals ===
+// --- Portals ---
+function highlightPortal(portal){
+  portal.style.boxShadow = `0 0 20px ${portal.classList.contains('dual-portal') ? 'magenta' : 'cyan'}, 0 0 10px #fff`;
+  setTimeout(()=>{ portal.style.boxShadow = ''; }, 100);
+}
+
 function checkPortals(player, list){
   list.forEach(p => {
     if(!p.classList.contains('fake') && isColliding(player,p)){
-      if(player === pinkGirl) pinkSpeed *= parseFloat(p.dataset.speed);
-      if(player === redVersion) redSpeed *= parseFloat(p.dataset.speed);
-      combo += 5; // reward for synced portal
+      highlightPortal(p);
+      pinkSpeed = Math.min(pinkSpeed * parseFloat(p.dataset.speed), 15);
+      combo += 5;
       updateCombo();
     }
   });
 }
 
-// === Combo update ===
 function updateCombo(){
   comboDisplay.textContent = `Combo: ${combo}`;
 }
 
-// === Game loop ===
+// --- Game Loop ---
 function gameLoop(timestamp){
-  // Rhythm beat
   if(timestamp - lastBeat >= beatInterval){
     lastBeat = timestamp;
-    sinePhase += Math.PI/4; // smooth wave
-    hazards.forEach(h => {
-      h.style.bottom = h.baseBottom + 10*Math.sin(sinePhase) + 'px';
-    });
-    // increase difficulty gradually
-    pinkSpeed += 0.02;
-    redSpeed += 0.02;
+    sinePhase += Math.PI / 4;
+
+    // Wave motion
+    hazards.forEach(h => h.style.bottom = h.baseBottom + 15*Math.sin(sinePhase) + 'px');
+    portals.forEach(p => p.style.bottom = p.baseBottom + 10*Math.sin(sinePhase/2) + 'px');
+    dualPortals.forEach(dp => dp.style.bottom = dp.baseBottom + 10*Math.sin(sinePhase/2) + 'px');
+
+    // Background pulse
+    const pulse = Math.sin(sinePhase)*20;
+    document.body.style.background = `linear-gradient(180deg, rgb(${17+pulse},${17+pulse},${17+pulse}) 0%, rgb(${34+pulse},${34+pulse},${34+pulse}) 100%)`;
   }
 
-  // Desktop input
+  // Vertical input
   pinkDirection = keys['w'] ? 1 : keys['s'] ? -1 : 0;
-  redDirection = keys['ArrowUp'] ? 1 : keys['ArrowDown'] ? -1 : 0;
+  let pinkY = parseInt(pinkGirl.dataset.y || '100') + pinkDirection*5;
+  pinkY = Math.max(0, Math.min(window.innerHeight-50, pinkY));
+  pinkGirl.dataset.y = pinkY;
+  pinkGirl.style.transform = `translate(100px, ${window.innerHeight-50-pinkY + 3*Math.sin(sinePhase)}px)`;
 
-  // Move players
-  pinkGirl.style.bottom = Math.max(0, Math.min(window.innerHeight-50,
-    parseInt(pinkGirl.style.bottom) + pinkDirection*5)) + 'px';
-  pinkGirl.style.left = Math.min(window.innerWidth-50, parseInt(pinkGirl.style.left)+pinkSpeed) + 'px';
-
-  redVersion.style.bottom = Math.max(0, Math.min(window.innerHeight-50,
-    parseInt(redVersion.style.bottom) + redDirection*5)) + 'px';
-  redVersion.style.left = Math.min(window.innerWidth-50, parseInt(redVersion.style.left)+redSpeed) + 'px';
-
-  // Hazards collisions
+  // Collisions
   hazards.forEach(h => {
-    if(isColliding(pinkGirl,h)) resetPlayer(pinkGirl,100,100);
-    if(isColliding(redVersion,h)) resetPlayer(redVersion,200,100);
+    if(isColliding(pinkGirl,h)) resetPlayer(pinkGirl,100);
   });
-
-  // Portals collisions
   checkPortals(pinkGirl, portals);
-  checkPortals(redVersion, portals);
   dualPortals.forEach(dp => {
-    if(isColliding(pinkGirl,dp) || isColliding(redVersion,dp)){
-      pinkSpeed *= parseFloat(dp.dataset.speed);
-      redSpeed *= parseFloat(dp.dataset.speed);
-    }
+    if(isColliding(pinkGirl,dp)) pinkSpeed = Math.min(pinkSpeed * parseFloat(dp.dataset.speed),15);
   });
 
-  // Increment combo
   combo++;
   updateCombo();
-
   requestAnimationFrame(gameLoop);
 }
 
-// === Mobile touch buttons ===
-function createTouchButton(label, x, y, cbDown, cbUp){
+requestAnimationFrame(gameLoop);
+
+// --- Mobile Buttons ---
+function createTouchButton(label, x, y, onPress, onRelease){
   const btn = document.createElement('div');
   btn.textContent = label;
-  btn.style.position='fixed';
-  btn.style.width='50px';
-  btn.style.height='50px';
-  btn.style.bottom=y+'px';
-  btn.style.left=x+'px';
-  btn.style.background='rgba(255,255,255,0.3)';
-  btn.style.textAlign='center';
-  btn.style.lineHeight='50px';
-  btn.style.fontSize='20px';
-  btn.style.borderRadius='10px';
-  btn.style.userSelect='none';
-  btn.addEventListener('touchstart', e=>{e.preventDefault(); cbDown();});
-  btn.addEventListener('touchend', e=>{e.preventDefault(); cbUp();});
+  btn.style.position = 'fixed';
+  btn.style.width = '50px';
+  btn.style.height = '50px';
+  btn.style.bottom = y + 'px';
+  btn.style.left = x + 'px';
+  btn.style.background = 'rgba(255,255,255,0.3)';
+  btn.style.textAlign = 'center';
+  btn.style.lineHeight = '50px';
+  btn.style.fontSize = '20px';
+  btn.style.borderRadius = '10px';
+  btn.style.userSelect = 'none';
+  btn.style.zIndex = '1000';
+  btn.addEventListener('touchstart', e => { e.preventDefault(); onPress(); });
+  btn.addEventListener('touchend', e => { e.preventDefault(); onRelease(); });
+  btn.addEventListener('touchcancel', e => { e.preventDefault(); onRelease(); });
   document.body.appendChild(btn);
 }
 
-// Pink Girl
-createTouchButton('↑',20,
+createTouchButton('↑', 20, 80, () => keys['w'] = true, () => keys['w'] = false);
+createTouchButton('↓', 20, 20, () => keys['s'] = true, () => keys['s'] = false);
+</script>
+</body>
+</html>
