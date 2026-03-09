@@ -12,12 +12,26 @@ const wasmUrl = 'https://opstic.github.io/gdclone/gdclone_bg.wasm';
 const jsUrl = 'https://opstic.github.io/gdclone/gdclone.js';
 
 async function loadGDClone() {
-  // Dynamically import the GDClone JS loader
   const module = await import(jsUrl);
-  // Initialize with the remote WASM file
   await module.default(wasmUrl);
-  // Load your custom level JSON
-  module.load_level('assets/levels/ashley_wave_trials_e.json');
+  
+  const level = await fetch('assets/levels/ashley_wave_trials_e.json').then(r => r.json());
+  
+  level.objects.forEach(obj => {
+    if(obj.type === 'wave') {
+      obj.render = function(ctx) {
+        const waveHeight = 20;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y + waveHeight);            
+        ctx.lineTo(this.x + this.length, this.y);          
+        ctx.lineTo(this.x + this.length, this.y + waveHeight); 
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      };
+    }
+  });
+
+  module.load_level(level);
 }
 
 loadGDClone();
