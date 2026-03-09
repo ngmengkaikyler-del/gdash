@@ -8,14 +8,19 @@
 <body>
 <canvas id="gdCanvas"></canvas>
 <script type="module">
-import init, { load_level } from './wasm/gdclone.js';
+const wasmUrl = 'https://opstic.github.io/gdclone/gdclone_bg.wasm';
+const jsUrl = 'https://opstic.github.io/gdclone/gdclone.js';
 
-async function startGDClone() {
-  await init();
-  load_level('assets/levels/ashley_wave_trials_e.json');
+async function loadGDClone() {
+  // Dynamically import the GDClone JS loader
+  const module = await import(jsUrl);
+  // Initialize with the remote WASM file
+  await module.default(wasmUrl);
+  // Load your custom level JSON
+  module.load_level('assets/levels/ashley_wave_trials_e.json');
 }
 
-startGDClone();
+loadGDClone();
 </script>
 </body>
 </html>
