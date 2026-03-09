@@ -3,15 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ashley Wave Trials Web</title>
+<title>Ashley Wave Trials Easy</title>
 
 <style>
 
 body{
 margin:0;
 overflow:hidden;
-background:linear-gradient(#ff66aa,#ff99cc);
 font-family:sans-serif;
+background:linear-gradient(180deg,#ff5fa2,#ff99cc);
+animation:bgpulse 6s infinite alternate;
+}
+
+@keyframes bgpulse{
+from{filter:brightness(1)}
+to{filter:brightness(1.2)}
 }
 
 #game{
@@ -25,10 +31,10 @@ overflow:hidden;
 
 .player{
 position:absolute;
-width:28px;
-height:28px;
-clip-path:polygon(50% 0%,0% 100%,100% 100%);
-background:pink;
+width:26px;
+height:26px;
+background:white;
+clip-path:polygon(0% 50%,100% 0%,100% 100%);
 box-shadow:0 0 12px white;
 }
 
@@ -38,19 +44,31 @@ box-shadow:0 0 12px white;
 position:absolute;
 width:40px;
 height:40px;
-background:red;
+background:#ff2e6e;
 clip-path:polygon(50% 0%,0% 100%,100% 100%);
+box-shadow:0 0 15px #ff2e6e;
+}
+
+/* SAWS */
+
+.saw{
+position:absolute;
+width:40px;
+height:40px;
+border-radius:50%;
+background:white;
+box-shadow:0 0 15px white;
 }
 
 /* PORTALS */
 
 .portal{
 position:absolute;
-width:40px;
-height:40px;
+width:45px;
+height:45px;
 border-radius:50%;
 background:cyan;
-box-shadow:0 0 15px cyan;
+box-shadow:0 0 18px cyan;
 }
 
 /* TRAIL */
@@ -61,7 +79,7 @@ width:6px;
 height:6px;
 border-radius:50%;
 background:white;
-opacity:0.7;
+opacity:0.8;
 pointer-events:none;
 }
 
@@ -83,9 +101,10 @@ width:0%;
 background:white;
 }
 
-/* DEATH TEXT */
+/* TEXT */
 
-#death{
+#death,#complete{
+
 position:fixed;
 top:50%;
 left:50%;
@@ -93,6 +112,7 @@ transform:translate(-50%,-50%);
 color:white;
 font-size:40px;
 display:none;
+
 }
 
 </style>
@@ -105,25 +125,29 @@ display:none;
 </div>
 
 <div id="progress"><div id="bar"></div></div>
+
 <div id="death">💀</div>
+<div id="complete">LEVEL COMPLETE 🎉</div>
 
 <script>
 
-const game = document.getElementById("game")
-const player = document.getElementById("player")
-const bar = document.getElementById("bar")
-const deathText = document.getElementById("death")
+const game=document.getElementById("game")
+const player=document.getElementById("player")
+const bar=document.getElementById("bar")
+const deathText=document.getElementById("death")
+const completeText=document.getElementById("complete")
 
-let y = 250
-let holding = false
-let speed = 4
-let progress = 0
-let dead = false
+let y=250
+let holding=false
+let speed=3
+let progress=0
+let dead=false
+let mini=false
 
-player.style.left = "200px"
+player.style.left="200px"
 
 document.addEventListener("keydown",e=>{
-if(e.code==="Space" || e.key==="w") holding=true
+if(e.code==="Space"||e.key==="w")holding=true
 })
 
 document.addEventListener("keyup",()=>holding=false)
@@ -133,13 +157,10 @@ document.addEventListener("touchend",()=>holding=false)
 
 const objects=[]
 
-/* CREATE SPIKES */
-
 function spike(x,y){
 
 const s=document.createElement("div")
 s.className="spike"
-
 s.style.left=x+"px"
 s.style.bottom=y+"px"
 
@@ -148,13 +169,10 @@ objects.push(s)
 
 }
 
-/* CREATE PORTAL */
-
 function portal(x,y){
 
 const p=document.createElement("div")
 p.className="portal"
-
 p.style.left=x+"px"
 p.style.bottom=y+"px"
 
@@ -163,24 +181,62 @@ objects.push(p)
 
 }
 
-/* LEVEL LAYOUT */
+/* EASY ASHLEY WAVE TRIALS STYLE */
 
-for(let i=0;i<30;i++){
+/* INTRO */
 
-spike(700+i*120,100+i*3)
-spike(700+i*120,450-i*3)
+for(let i=0;i<20;i++){
 
-}
-
-for(let i=0;i<15;i++){
-
-spike(4300+i*80,120)
-spike(4300+i*80,420)
+spike(800+i*170,180+i*2)
+spike(800+i*170,360-i*2)
 
 }
 
-portal(2200,250)
-portal(4000,250)
+/* ZIG ZAG */
+
+for(let i=0;i<14;i++){
+
+let offset=(i%2==0)?70:0
+
+spike(4200+i*150,200+offset)
+spike(4200+i*150,330-offset)
+
+}
+
+/* SPEED PORTAL */
+
+portal(6300,250)
+
+/* MID SECTION */
+
+for(let i=0;i<18;i++){
+
+spike(6600+i*140,200)
+spike(6600+i*140,330)
+
+}
+
+/* MINI WAVE */
+
+portal(9000,250)
+
+for(let i=0;i<16;i++){
+
+let offset=(i%2==0)?50:0
+
+spike(9400+i*130,210+offset)
+spike(9400+i*130,320-offset)
+
+}
+
+/* FINAL */
+
+for(let i=0;i<16;i++){
+
+spike(12000+i*140,210)
+spike(12000+i*140,320)
+
+}
 
 /* COLLISION */
 
@@ -189,12 +245,7 @@ function collide(a,b){
 const A=a.getBoundingClientRect()
 const B=b.getBoundingClientRect()
 
-return !(
-A.right<B.left||
-A.left>B.right||
-A.bottom<B.top||
-A.top>B.bottom
-)
+return !(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)
 
 }
 
@@ -205,9 +256,16 @@ function death(){
 dead=true
 deathText.style.display="block"
 
-setTimeout(()=>{
-location.reload()
-},1200)
+setTimeout(()=>location.reload(),1200)
+
+}
+
+/* COMPLETE */
+
+function complete(){
+
+dead=true
+completeText.style.display="block"
 
 }
 
@@ -218,12 +276,12 @@ function trail(){
 const t=document.createElement("div")
 t.className="trail"
 
-t.style.left=(player.offsetLeft+10)+"px"
-t.style.top=(player.offsetTop+10)+"px"
+t.style.left=(player.offsetLeft+12)+"px"
+t.style.top=(player.offsetTop+12)+"px"
 
 game.appendChild(t)
 
-setTimeout(()=>t.remove(),250)
+setTimeout(()=>t.remove(),200)
 
 }
 
@@ -231,18 +289,18 @@ setTimeout(()=>t.remove(),250)
 
 function loop(){
 
-if(dead) return
+if(dead)return
 
-/* WAVE PHYSICS */
+let wavePower=mini?4:5
 
 if(holding){
 
-y+=6
+y+=wavePower
 player.style.transform="rotate(-35deg)"
 
 }else{
 
-y-=6
+y-=wavePower
 player.style.transform="rotate(35deg)"
 
 }
@@ -250,21 +308,30 @@ player.style.transform="rotate(35deg)"
 y=Math.max(0,Math.min(window.innerHeight-40,y))
 player.style.bottom=y+"px"
 
-/* MOVE LEVEL */
+/* MOVE OBJECTS */
 
 objects.forEach(o=>{
 
 let x=parseFloat(o.style.left)
+
 x-=speed
 o.style.left=x+"px"
-
-/* COLLISION */
 
 if(collide(player,o)){
 
 if(o.className==="portal"){
 
-speed+=2
+if(!mini){
+
+mini=true
+player.style.transform+=" scale(0.7)"
+
+}else{
+
+speed+=1
+
+}
+
 o.remove()
 
 }else{
@@ -277,10 +344,10 @@ death()
 
 })
 
-/* PROGRESS */
-
 progress+=0.03
 bar.style.width=progress+"%"
+
+if(progress>=100)complete()
 
 trail()
 
