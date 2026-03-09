@@ -3,191 +3,294 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ashley Wave Trials E - GD Clone Style</title>
+<title>Ashley Wave Trials Web</title>
+
 <style>
-/* --- Background --- */
-body {
-  margin: 0;
-  overflow: hidden;
-  font-family: sans-serif;
-  background: linear-gradient(180deg, #ff66aa 0%, #ff99cc 100%);
+
+body{
+margin:0;
+overflow:hidden;
+background:linear-gradient(#ff66aa,#ff99cc);
+font-family:sans-serif;
 }
 
-/* --- Game Container --- */
-#game-container {
-  position: relative;
-  width: 100%;
-  height: 100vh;
+#game{
+position:relative;
+width:100%;
+height:100vh;
+overflow:hidden;
 }
 
-/* --- Player --- */
-.player {
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  background: pink;
-  box-shadow: 0 0 8px white;
+/* PLAYER */
+
+.player{
+position:absolute;
+width:28px;
+height:28px;
+clip-path:polygon(50% 0%,0% 100%,100% 100%);
+background:pink;
+box-shadow:0 0 12px white;
 }
 
-/* --- Hazards --- */
-.cog, .spike {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #fff, 0 3px 6px rgba(0,0,0,0.3);
+/* SPIKES */
+
+.spike{
+position:absolute;
+width:40px;
+height:40px;
+background:red;
+clip-path:polygon(50% 0%,0% 100%,100% 100%);
 }
 
-.cog { background: gray; }
-.spike {
-  background: red;
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+/* PORTALS */
+
+.portal{
+position:absolute;
+width:40px;
+height:40px;
+border-radius:50%;
+background:cyan;
+box-shadow:0 0 15px cyan;
 }
 
-/* --- Portals --- */
-.speed-portal, .dual-portal {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #fff inset, 0 0 8px currentColor;
+/* TRAIL */
+
+.trail{
+position:absolute;
+width:6px;
+height:6px;
+border-radius:50%;
+background:white;
+opacity:0.7;
+pointer-events:none;
 }
 
-.speed-portal { background-color: cyan; color: cyan; }
-.dual-portal { background-color: magenta; color: magenta; }
+/* PROGRESS BAR */
 
-/* --- Combo Display --- */
-.combo-display {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  font-size: 24px;
-  font-weight: bold;
-  text-shadow: 0 0 5px #fff;
+#progress{
+position:fixed;
+top:15px;
+left:50%;
+transform:translateX(-50%);
+width:70%;
+height:10px;
+background:rgba(255,255,255,0.3);
 }
+
+#bar{
+height:100%;
+width:0%;
+background:white;
+}
+
+/* DEATH TEXT */
+
+#death{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+color:white;
+font-size:40px;
+display:none;
+}
+
 </style>
 </head>
+
 <body>
-<div id="game-container">
-  <div id="pink-girl" class="player"></div>
 
-  <!-- Hazards -->
-  <div class="cog" style="bottom:120px; left:200px;"></div>
-  <div class="spike" style="bottom:60px; left:250px;"></div>
-  <div class="cog" style="bottom:80px; left:350px;"></div>
-  <div class="spike" style="bottom:100px; left:450px;"></div>
-
-  <!-- Portals -->
-  <div class="speed-portal" data-speed="1.5" style="bottom:140px; left:300px;"></div>
-  <div class="dual-portal" data-speed="1.8" style="bottom:120px; left:500px;"></div>
+<div id="game">
+<div id="player" class="player"></div>
 </div>
 
-<div class="combo-display" id="combo">Combo: 0</div>
+<div id="progress"><div id="bar"></div></div>
+<div id="death">💀</div>
 
 <script>
-// --- Variables ---
-const pinkGirl = document.getElementById('pink-girl');
-const hazards = [...document.querySelectorAll('.cog, .spike')];
-const portals = [...document.querySelectorAll('.speed-portal')];
-const dualPortals = [...document.querySelectorAll('.dual-portal')];
-const comboDisplay = document.getElementById('combo');
 
-pinkGirl.style.left = '100px';
-pinkGirl.style.bottom = '100px';
-pinkGirl.dataset.y = '100';
-[...hazards, ...portals, ...dualPortals].forEach(obj=>obj.baseBottom=parseInt(obj.style.bottom)||0);
+const game = document.getElementById("game")
+const player = document.getElementById("player")
+const bar = document.getElementById("bar")
+const deathText = document.getElementById("death")
 
-let keys = {};
-document.addEventListener('keydown', e => keys[e.key] = true);
-document.addEventListener('keyup', e => keys[e.key] = false);
+let y = 250
+let holding = false
+let speed = 4
+let progress = 0
+let dead = false
 
-let pinkSpeed = 3, combo = 0;
-let beatInterval = 500, lastBeat = performance.now(), sinePhase = 0;
+player.style.left = "200px"
 
-// --- Functions ---
-function isColliding(a,b){
-  const A=a.getBoundingClientRect(), B=b.getBoundingClientRect();
-  return !(A.right<B.left || A.left>B.right || A.bottom<B.top || A.top>B.bottom);
+document.addEventListener("keydown",e=>{
+if(e.code==="Space" || e.key==="w") holding=true
+})
+
+document.addEventListener("keyup",()=>holding=false)
+
+document.addEventListener("touchstart",()=>holding=true)
+document.addEventListener("touchend",()=>holding=false)
+
+const objects=[]
+
+/* CREATE SPIKES */
+
+function spike(x,y){
+
+const s=document.createElement("div")
+s.className="spike"
+
+s.style.left=x+"px"
+s.style.bottom=y+"px"
+
+game.appendChild(s)
+objects.push(s)
+
 }
 
-function resetPlayer(player,y){
-  player.style.bottom=y+'px';
-  combo=0; updateCombo();
+/* CREATE PORTAL */
+
+function portal(x,y){
+
+const p=document.createElement("div")
+p.className="portal"
+
+p.style.left=x+"px"
+p.style.bottom=y+"px"
+
+game.appendChild(p)
+objects.push(p)
+
 }
 
-function highlightPortal(portal){
-  portal.style.boxShadow=`0 0 20px ${portal.classList.contains('dual-portal')?'magenta':'cyan'},0 0 10px #fff`;
-  setTimeout(()=>portal.style.boxShadow='',100);
+/* LEVEL LAYOUT */
+
+for(let i=0;i<30;i++){
+
+spike(700+i*120,100+i*3)
+spike(700+i*120,450-i*3)
+
 }
 
-function checkPortals(player,list){
-  list.forEach(p=>{
-    if(isColliding(player,p)){
-      highlightPortal(p);
-      pinkSpeed = Math.min(pinkSpeed * parseFloat(p.dataset.speed), 15);
-      combo += 5;
-      updateCombo();
-    }
-  });
+for(let i=0;i<15;i++){
+
+spike(4300+i*80,120)
+spike(4300+i*80,420)
+
 }
 
-function updateCombo(){comboDisplay.textContent=`Combo: ${combo}`;}
+portal(2200,250)
+portal(4000,250)
 
-// --- Game Loop ---
-function gameLoop(timestamp){
-  if(timestamp - lastBeat >= beatInterval){
-    lastBeat = timestamp;
-    sinePhase += Math.PI/4;
-    hazards.forEach(h=>h.style.bottom = h.baseBottom + 15*Math.sin(sinePhase)+'px');
-    portals.forEach(p=>p.style.bottom = p.baseBottom + 10*Math.sin(sinePhase/2)+'px');
-    dualPortals.forEach(dp=>dp.style.bottom = dp.baseBottom + 10*Math.sin(sinePhase/2)+'px');
-  }
+/* COLLISION */
 
-  // Player vertical movement
-  let y = parseInt(pinkGirl.dataset.y) + (keys['w'] ? 5 : keys['s'] ? -5 : 0);
-  y = Math.max(0, Math.min(window.innerHeight-50, y));
-  pinkGirl.dataset.y = y;
-  pinkGirl.style.transform = `translate(100px, ${window.innerHeight-50 - y}px)`;
+function collide(a,b){
 
-  // Collisions
-  hazards.forEach(h=>{if(isColliding(pinkGirl,h)) resetPlayer(pinkGirl,100);});
-  checkPortals(pinkGirl, portals);
-  dualPortals.forEach(dp=>{if(isColliding(pinkGirl,dp)) pinkSpeed = Math.min(pinkSpeed*parseFloat(dp.dataset.speed),15);});
+const A=a.getBoundingClientRect()
+const B=b.getBoundingClientRect()
 
-  combo++;
-  updateCombo();
-  requestAnimationFrame(gameLoop);
+return !(
+A.right<B.left||
+A.left>B.right||
+A.bottom<B.top||
+A.top>B.bottom
+)
+
 }
 
-requestAnimationFrame(gameLoop);
+/* DEATH */
 
-// --- Mobile Controls ---
-function createTouchButton(label,x,y,onPress,onRelease){
-  const btn=document.createElement('div');
-  btn.textContent=label;
-  btn.style.position='fixed';
-  btn.style.width='50px';
-  btn.style.height='50px';
-  btn.style.bottom=y+'px';
-  btn.style.left=x+'px';
-  btn.style.background='rgba(255,255,255,0.3)';
-  btn.style.textAlign='center';
-  btn.style.lineHeight='50px';
-  btn.style.fontSize='20px';
-  btn.style.borderRadius='10px';
-  btn.style.userSelect='none';
-  btn.style.zIndex='1000';
-  btn.addEventListener('touchstart', e=>{e.preventDefault(); onPress();});
-  btn.addEventListener('touchend', e=>{e.preventDefault(); onRelease();});
-  btn.addEventListener('touchcancel', e=>{e.preventDefault(); onRelease();});
-  document.body.appendChild(btn);
+function death(){
+
+dead=true
+deathText.style.display="block"
+
+setTimeout(()=>{
+location.reload()
+},1200)
+
 }
 
-createTouchButton('↑',20,80,()=>keys['w']=true,()=>keys['w']=false);
-createTouchButton('↓',20,20,()=>keys['s']=true,()=>keys['s']=false);
+/* TRAIL */
+
+function trail(){
+
+const t=document.createElement("div")
+t.className="trail"
+
+t.style.left=(player.offsetLeft+10)+"px"
+t.style.top=(player.offsetTop+10)+"px"
+
+game.appendChild(t)
+
+setTimeout(()=>t.remove(),250)
+
+}
+
+/* GAME LOOP */
+
+function loop(){
+
+if(dead) return
+
+/* WAVE PHYSICS */
+
+if(holding){
+
+y+=6
+player.style.transform="rotate(-35deg)"
+
+}else{
+
+y-=6
+player.style.transform="rotate(35deg)"
+
+}
+
+y=Math.max(0,Math.min(window.innerHeight-40,y))
+player.style.bottom=y+"px"
+
+/* MOVE LEVEL */
+
+objects.forEach(o=>{
+
+let x=parseFloat(o.style.left)
+x-=speed
+o.style.left=x+"px"
+
+/* COLLISION */
+
+if(collide(player,o)){
+
+if(o.className==="portal"){
+
+speed+=2
+o.remove()
+
+}else{
+
+death()
+
+}
+
+}
+
+})
+
+/* PROGRESS */
+
+progress+=0.03
+bar.style.width=progress+"%"
+
+trail()
+
+requestAnimationFrame(loop)
+
+}
+
+loop()
+
 </script>
+
 </body>
 </html>
