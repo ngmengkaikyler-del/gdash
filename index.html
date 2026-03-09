@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ashley Wave Trials E - GD Clone</title>
+<style>
+body { margin:0; background:#111; overflow:hidden; font-family:sans-serif; }
+#game-container { position:relative; width:100%; height:100vh; background:#222; }
+
+.player {
+  position:absolute; width:50px; height:50px;
+  bottom:100px; left:100px;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  transition: all 0.05s linear;
+}
+
+#pink-girl { background:url('assets/pink-girl.png') no-repeat center; background-size:contain; }
+#red-version { background:url('assets/red-version.png') no-repeat center; background-size:contain; }
+
+.speed-portal, .dual-portal {
+  position:absolute; width:40px; height:40px; border-radius:50%;
+}
+.speed-portal { background-color:cyan; }
+.dual-portal { background-color:magenta; }
+
+.cog { position:absolute; width:60px; height:60px; background:url('assets/cog.png') no-repeat center; background-size:contain; }
+.spike { position:absolute; width:40px; height:40px; background:url('assets/spike.png') no-repeat center; background-size:contain; }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="pink-girl" class="player"></div>
+  <div id="red-version" class="player"></div>
+
+  <!-- Speed portals -->
+  <div class="speed-portal" data-speed="1.5" style="bottom:200px; left:350px;"></div>
+  <div class="speed-portal" data-speed="0.5" style="bottom:300px; left:650px;"></div>
+  <div class="speed-portal" data-speed="2.0" style="bottom:150px; left:950px;"></div>
+
+  <!-- Dual portals -->
+  <div class="dual-portal" data-speed="1.8" style="bottom:220px; left:500px;"></div>
+  <div class="dual-portal" data-speed="0.6" style="bottom:180px; left:800px;"></div>
+
+  <!-- Cogs -->
+  <div class="cog" style="bottom:150px; left:400px;"></div>
+  <div class="cog" style="bottom:250px; left:700px;"></div>
+  <div class="cog" style="bottom:200px; left:1000px;"></div>
+
+  <!-- Spikes -->
+  <div class="spike" style="bottom:0px; left:300px;"></div>
+  <div class="spike" style="bottom:0px; left:400px;"></div>
+  <div class="spike" style="bottom:0px; left:500px;"></div>
+  <div class="spike" style="bottom:0px; left:600px;"></div>
+  <div class="spike" style="bottom:0px; left:700px;"></div>
+  <div class="spike" style="bottom:0px; left:800px;"></div>
+  <div class="spike" style="bottom:0px; left:900px;"></div>
+  <div class="spike" style="bottom:0px; left:1000px;"></div>
+</div>
+
+<script>
+const pinkGirl = document.getElementById('pink-girl');
+const redVersion = document.getElementById('red-version');
+const hazards = [...document.querySelectorAll('.cog, .spike')];
+const portals = [...document.querySelectorAll('.speed-portal')];
+const dualPortals = [...document.querySelectorAll('.dual-portal')];
+
+let keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+let pinkDirection = 1, redDirection = 1;
+let pinkSpeed = 3, redSpeed = 3;
+
+// collision detection
+function isColliding(a,b){
+  const A = a.getBoundingClientRect();
+  const B = b.getBoundingClientRect();
+  return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom);
+}
+
+function resetPlayer(player,x,y){
+  player.style.left = x + 'px';
+  player.style.bottom = y + 'px';
+  if(player === pinkGirl) pinkSpeed = 3;
+  if(player === redVersion) redSpeed = 3;
+}
+
+function checkPortals(player, speedHolder, list) {
+  list.forEach(p => {
+    if(isColliding(player, p)) {
+      speedHolder.value *= parseFloat(p.dataset.speed);
+    }
+  });
+}
+
+function gameLoop(){
+  if(keys['w']) pinkDirection = 1;
+  if(keys['s']) pinkDirection = -1;
+  if(keys['ArrowUp']) redDirection = 1;
+  if(keys['ArrowDown']) redDirection = -1;
+
+  pinkGirl.style.bottom = Math.max(0, Math.min(window.innerHeight-50,
+    parseInt(pinkGirl.style.bottom) + pinkDirection * 5)) + 'px';
+  pinkGirl.style.left = parseInt(pinkGirl.style.left) + pinkSpeed + 'px';
+
+  redVersion.style.bottom = Math.max(0, Math.min(window.innerHeight-50,
+    parseInt(redVersion.style.bottom) + redDirection * 5)) + 'px';
+  redVersion.style.left = parseInt(redVersion.style.left) + redSpeed + 'px';
+
+  hazards.forEach(h => {
+    if(isColliding(pinkGirl,h)) resetPlayer(pinkGirl,100,100);
+    if(isColliding(redVersion,h)) resetPlayer(redVersion,200,100);
+  });
+
+  checkPortals(pinkGirl,{value:pinkSpeed},portals);
+  checkPortals(redVersion,{value:redSpeed},portals);
+
+  dualPortals.forEach(dp => {
+    if(isColliding(pinkGirl,dp) || isColliding(redVersion,dp)) {
+      pinkSpeed *= parseFloat(dp.dataset.speed);
+      redSpeed *= parseFloat(dp.dataset.speed);
+    }
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+
+pinkGirl.style.bottom = '100px'; pinkGirl.style.left = '100px';
+redVersion.style.bottom = '100px'; redVersion.style.left = '200px';
+gameLoop();
+</script>
+</body>
+</html>
