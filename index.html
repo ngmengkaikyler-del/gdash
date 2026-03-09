@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ashley Demon Trials EZ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="gdCanvas"></canvas>
+<script type="module">
+import init, { load_level } from './wasm/gdclone.js';
+
+async function startGDClone() {
+  await init();
+  load_level('assets/levels/ashley_wave_trials_e.json');
+}
+
+startGDClone();
+</script>
+</body>
+</html>
