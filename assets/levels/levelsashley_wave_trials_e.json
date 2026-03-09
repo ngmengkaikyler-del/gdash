@@ -1,9 +1,23 @@
-gdclone-wasm-template/
-├─ index.html
-├─ style.css
-├─ assets/
-│  └─ levels/
-│     └─ ashley_wave_trials_e.json
-├─ wasm/
-│  ├─ gdclone_bg.wasm   (placeholder – copy from live demo)
-│  └─ gdclone.js        (placeholder – copy from live demo)
+{
+  "levelName": "Ashley Wave Trials E",
+  "author": "Unknown",
+  "difficulty": "Hard",
+  "objects": [
+    {"type":"block","x":0,"y":300,"width":50,"height":50,"color":"#00ff00"},
+    {"type":"block","x":60,"y":300,"width":50,"height":50,"color":"#00ff00"},
+    {"type":"spike","x":150,"y":300,"width":30,"height":30,"color":"#ff0000"},
+    {"type":"speed","x":180,"width":50,"multiplier":1.5},
+    {"type":"block","x":200,"y":250,"width":50,"height":50,"color":"#00ff00"},
+    {"type":"block","x":260,"y":250,"width":50,"height":50,"color":"#00ff00"},
+    {"type":"spike","x":330,"y":250,"width":30,"height":30,"color":"#ff0000"},
+    {"type":"wave","x":50,"y":280,"length":30,"speed":3,"color":"#ff00ff"},
+    {"type":"portal","x":360,"portalType":"wave_flip"},
+    {"type":"block","x":400,"y":300,"width":50,"height":50,"color":"#00ff00"},
+    {"type":"spike","x":460,"y":300,"width":30,"height":30,"color":"#ff0000"},
+    {"type":"speed","x":500,"width":50,"multiplier":0.75},
+    {"type":"portal","x":550,"portalType":"gravity_flip"},
+    {"type":"block","x":600,"y":250,"width":50,"height":50,"color":"#00ff00"},
+    {"type":"spike","x":660,"y":250,"width":30,"height":30,"color":"#ff0000"},
+    {"type":"wave","x":650,"y":280,"length":30,"speed":3,"color":"#ff00ff"}
+  ]
+}
