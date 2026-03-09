@@ -1,0 +1,9 @@
+gdclone-wasm-template/
+├─ index.html
+├─ style.css
+├─ assets/
+│  └─ levels/
+│     └─ ashley_wave_trials_e.json
+├─ wasm/
+│  ├─ gdclone_bg.wasm   (placeholder – copy from live demo)
+│  └─ gdclone.js        (placeholder – copy from live demo)
