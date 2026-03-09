@@ -3,45 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ashley Wave Trials E - GD Clone</title>
+<title>Ashley Wave Trials E - GD Clone (Easy)</title>
 <style>
-body {
-  margin: 0;
-  background: #111;
-  overflow: hidden;
-  font-family: sans-serif;
-}
-#game-container {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  background: #222;
-}
+body { margin:0; background:#111; overflow:hidden; font-family:sans-serif; }
+#game-container { position:relative; width:100%; height:100vh; background:#222; }
 
 .player {
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  bottom: 100px;
-  left: 100px;
+  position:absolute; width:50px; height:50px;
+  bottom:100px; left:100px;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
   transition: all 0.05s linear;
 }
 
-#pink-girl { background: url('assets/pink-girl.png') no-repeat center; background-size: contain; }
-#red-version { background: url('assets/red-version.png') no-repeat center; background-size: contain; }
+#pink-girl { background:url('assets/pink-girl.png') no-repeat center; background-size:contain; }
+#red-version { background:url('assets/red-version.png') no-repeat center; background-size:contain; }
 
 .speed-portal, .dual-portal {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  position:absolute; width:40px; height:40px; border-radius:50%;
 }
-.speed-portal { background-color: cyan; }
-.dual-portal { background-color: magenta; }
+.speed-portal { background-color:cyan; }
+.dual-portal { background-color:magenta; }
 
-.cog { position: absolute; width: 60px; height: 60px; background: url('assets/cog.png') no-repeat center; background-size: contain; }
-.spike { position: absolute; width: 40px; height: 40px; background: url('assets/spike.png') no-repeat center; background-size: contain; }
+.cog { position:absolute; width:60px; height:60px; background:url('assets/cog.png') no-repeat center; background-size:contain; }
+.spike { position:absolute; width:40px; height:40px; background:url('assets/spike.png') no-repeat center; background-size:contain; }
 </style>
 </head>
 <body>
@@ -49,12 +33,12 @@ body {
   <div id="pink-girl" class="player"></div>
   <div id="red-version" class="player"></div>
 
-  <!-- Speed Portals -->
+  <!-- Speed portals -->
   <div class="speed-portal" data-speed="1.5" style="bottom:200px; left:350px;"></div>
   <div class="speed-portal" data-speed="0.5" style="bottom:300px; left:650px;"></div>
   <div class="speed-portal" data-speed="2.0" style="bottom:150px; left:950px;"></div>
 
-  <!-- Dual Portals -->
+  <!-- Dual portals -->
   <div class="dual-portal" data-speed="1.8" style="bottom:220px; left:500px;"></div>
   <div class="dual-portal" data-speed="0.6" style="bottom:180px; left:800px;"></div>
 
@@ -87,12 +71,18 @@ let keys = {};
 document.addEventListener('keydown', e => keys[e.key] = true);
 document.addEventListener('keyup', e => keys[e.key] = false);
 
-let pinkDirection = 0;
-let redDirection = 0;
+// === Player state ===
+let pinkDirection = 0, redDirection = 0;
+let pinkSpeed = 3, redSpeed = 3;
+let baseSpeed = 3;
 
-// === Speeds ===
-let pinkSpeed = 3;
-let redSpeed = 3;
+// === Beat map & rhythm ===
+// Times in ms where hazards move / portals activate (example pattern)
+const beatMap = [
+  0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000,
+  4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000
+];
+let songStart = null;
 
 // === Collision detection ===
 function isColliding(a, b) {
@@ -105,25 +95,43 @@ function isColliding(a, b) {
 function resetPlayer(player, x, y) {
   player.style.left = x + 'px';
   player.style.bottom = y + 'px';
-  if(player === pinkGirl) pinkSpeed = 3;
-  if(player === redVersion) redSpeed = 3;
+  if(player === pinkGirl) pinkSpeed = baseSpeed;
+  if(player === redVersion) redSpeed = baseSpeed;
 }
 
 // === Portals ===
 function checkPortals(player, list) {
   list.forEach(p => {
     if (isColliding(player, p)) {
-      if (player === pinkGirl) pinkSpeed *= parseFloat(p.dataset.speed);
-      if (player === redVersion) redSpeed *= parseFloat(p.dataset.speed);
+      // Fake portal chance
+      if(Math.random() < 0.7) { // 70% chance active
+        if (player === pinkGirl) pinkSpeed *= parseFloat(p.dataset.speed);
+        if (player === redVersion) redSpeed *= parseFloat(p.dataset.speed);
+      }
+    }
+  });
+}
+
+// === Move hazards rhythmically ===
+function moveHazards(currentTime) {
+  hazards.forEach((h, i) => {
+    const beatIndex = Math.floor(currentTime / 500) % beatMap.length; // every 500ms
+    if(h.classList.contains('spike')) {
+      h.style.bottom = (beatIndex % 2 === 0 ? 0 : 50) + 'px'; // spikes up/down
+    }
+    if(h.classList.contains('cog')) {
+      h.style.left = parseInt(h.style.left) + (beatIndex % 2 === 0 ? 1 : -1) + 'px'; // slight left/right
     }
   });
 }
 
 // === Game loop ===
-function gameLoop() {
+function gameLoop(timestamp) {
+  if(!songStart) songStart = timestamp;
+  const elapsed = timestamp - songStart;
+
   // Desktop input
-  pinkDirection = 0;
-  redDirection = 0;
+  pinkDirection = 0; redDirection = 0;
   if(keys['w']) pinkDirection = 1;
   if(keys['s']) pinkDirection = -1;
   if(keys['ArrowUp']) redDirection = 1;
@@ -140,13 +148,13 @@ function gameLoop() {
   redVersion.style.left = Math.min(window.innerWidth-50,
     parseInt(redVersion.style.left) + redSpeed) + 'px';
 
-  // Hazards
+  // Hazards collisions
   hazards.forEach(h => {
     if(isColliding(pinkGirl,h)) resetPlayer(pinkGirl,100,100);
     if(isColliding(redVersion,h)) resetPlayer(redVersion,200,100);
   });
 
-  // Portals
+  // Check portals
   checkPortals(pinkGirl, portals);
   checkPortals(redVersion, portals);
   dualPortals.forEach(dp => {
@@ -156,15 +164,28 @@ function gameLoop() {
     }
   });
 
+  // Move hazards on beat
+  moveHazards(elapsed);
+
+  // Gradually increase difficulty
+  if(elapsed % 5000 < 16) { // every 5 seconds
+    pinkSpeed += 0.2;
+    redSpeed += 0.2;
+  }
+
   requestAnimationFrame(gameLoop);
 }
 
-// === Initialize ===
-pinkGirl.style.bottom = '100px';
-pinkGirl.style.left = '100px';
-redVersion.style.bottom = '100px';
-redVersion.style.left = '200px';
-gameLoop();
-</script>
-</body>
-</html>
+// === Mobile touch buttons ===
+function createTouchButton(label, x, y, callbackDown, callbackUp) {
+  const btn = document.createElement('div');
+  btn.textContent = label;
+  btn.style.position = 'fixed';
+  btn.style.width = '50px';
+  btn.style.height = '50px';
+  btn.style.bottom = y + 'px';
+  btn.style.left = x + 'px';
+  btn.style.background = 'rgba(255,255,255,0.3)';
+  btn.style.textAlign = 'center';
+  btn.style.lineHeight = '50px';
+  btn.style.fontSize = '20
