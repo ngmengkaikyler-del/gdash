@@ -1,89 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ashley Wave Trials Easy</title>
+<title>Ashley Wave Trials HTML</title>
 
 <style>
 
 body{
 margin:0;
 overflow:hidden;
+background:black;
 font-family:sans-serif;
-background:linear-gradient(180deg,#ff5fa2,#ff99cc);
-animation:bgpulse 6s infinite alternate;
 }
 
-@keyframes bgpulse{
-from{filter:brightness(1)}
-to{filter:brightness(1.2)}
+canvas{
+display:block;
 }
-
-#game{
-position:relative;
-width:100%;
-height:100vh;
-overflow:hidden;
-}
-
-/* PLAYER */
-
-.player{
-position:absolute;
-width:26px;
-height:26px;
-background:white;
-clip-path:polygon(0% 50%,100% 0%,100% 100%);
-box-shadow:0 0 12px white;
-}
-
-/* SPIKES */
-
-.spike{
-position:absolute;
-width:40px;
-height:40px;
-background:#ff2e6e;
-clip-path:polygon(50% 0%,0% 100%,100% 100%);
-box-shadow:0 0 15px #ff2e6e;
-}
-
-/* SAWS */
-
-.saw{
-position:absolute;
-width:40px;
-height:40px;
-border-radius:50%;
-background:white;
-box-shadow:0 0 15px white;
-}
-
-/* PORTALS */
-
-.portal{
-position:absolute;
-width:45px;
-height:45px;
-border-radius:50%;
-background:cyan;
-box-shadow:0 0 18px cyan;
-}
-
-/* TRAIL */
-
-.trail{
-position:absolute;
-width:6px;
-height:6px;
-border-radius:50%;
-background:white;
-opacity:0.8;
-pointer-events:none;
-}
-
-/* PROGRESS BAR */
 
 #progress{
 position:fixed;
@@ -92,7 +24,7 @@ left:50%;
 transform:translateX(-50%);
 width:70%;
 height:10px;
-background:rgba(255,255,255,0.3);
+background:rgba(255,255,255,0.2);
 }
 
 #bar{
@@ -101,151 +33,169 @@ width:0%;
 background:white;
 }
 
-/* TEXT */
-
-#death,#complete{
-
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-color:white;
-font-size:40px;
-display:none;
-
-}
-
 </style>
 </head>
 
 <body>
 
-<div id="game">
-<div id="player" class="player"></div>
-</div>
+<canvas id="game"></canvas>
 
 <div id="progress"><div id="bar"></div></div>
 
-<div id="death">💀</div>
-<div id="complete">LEVEL COMPLETE 🎉</div>
-
 <script>
 
-const game=document.getElementById("game")
-const player=document.getElementById("player")
+/* CANVAS */
+
+const canvas=document.getElementById("game")
+const ctx=canvas.getContext("2d")
+
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
+
 const bar=document.getElementById("bar")
-const deathText=document.getElementById("death")
-const completeText=document.getElementById("complete")
 
-let y=250
+/* INPUT */
+
 let holding=false
-let speed=3
-let progress=0
-let dead=false
-let mini=false
 
-player.style.left="200px"
-
-document.addEventListener("keydown",e=>{
-if(e.code==="Space"||e.key==="w")holding=true
-})
-
+document.addEventListener("keydown",()=>holding=true)
 document.addEventListener("keyup",()=>holding=false)
 
 document.addEventListener("touchstart",()=>holding=true)
 document.addEventListener("touchend",()=>holding=false)
 
-const objects=[]
+/* PLAYER */
 
-function spike(x,y){
+let player={
+x:200,
+y:350
+}
 
-const s=document.createElement("div")
-s.className="spike"
-s.style.left=x+"px"
-s.style.bottom=y+"px"
+let speed=6
+let wavePower=6
 
-game.appendChild(s)
-objects.push(s)
+/* OBJECT LISTS */
+
+let spikesTop=[]
+let spikesBottom=[]
+let portals=[]
+let saws=[]
+let trail=[]
+
+/* TRAIL */
+
+function addTrail(x,y){
+
+trail.push({
+x:x,
+y:y,
+life:25
+})
 
 }
 
-function portal(x,y){
+/* SPIKE GENERATOR */
 
-const p=document.createElement("div")
-p.className="portal"
-p.style.left=x+"px"
-p.style.bottom=y+"px"
+function ashleyTunnel(startX,length,gap,amp,spd){
 
-game.appendChild(p)
-objects.push(p)
+for(let i=0;i<length;i++){
 
-}
+let x=startX+i*22
 
-/* EASY ASHLEY WAVE TRIALS STYLE */
+let center=
+350+
+Math.sin(i*spd)*amp+
+Math.sin(i*0.05)*60
 
-/* INTRO */
+spikesTop.push({
+x:x,
+y:center-gap
+})
 
-for(let i=0;i<20;i++){
-
-spike(800+i*170,180+i*2)
-spike(800+i*170,360-i*2)
-
-}
-
-/* ZIG ZAG */
-
-for(let i=0;i<14;i++){
-
-let offset=(i%2==0)?70:0
-
-spike(4200+i*150,200+offset)
-spike(4200+i*150,330-offset)
+spikesBottom.push({
+x:x,
+y:center+gap
+})
 
 }
 
-/* SPEED PORTAL */
+}
 
-portal(6300,250)
+/* LEVEL */
 
-/* MID SECTION */
+function generateLevel(){
 
-for(let i=0;i<18;i++){
+ashleyTunnel(800,400,90,120,0.4)
 
-spike(6600+i*140,200)
-spike(6600+i*140,330)
+portals.push({x:10000,speed:10})
+
+ashleyTunnel(10200,500,70,150,0.6)
+
+portals.push({x:20000,speed:14})
+
+ashleyTunnel(20200,700,60,170,0.8)
+
+portals.push({x:34000,speed:18})
+
+ashleyTunnel(34200,900,55,200,1.1)
+
+portals.push({x:52000,speed:22})
+
+ashleyTunnel(52200,1200,45,220,1.3)
 
 }
 
-/* MINI WAVE */
-
-portal(9000,250)
-
-for(let i=0;i<16;i++){
-
-let offset=(i%2==0)?50:0
-
-spike(9400+i*130,210+offset)
-spike(9400+i*130,320-offset)
-
-}
-
-/* FINAL */
-
-for(let i=0;i<16;i++){
-
-spike(12000+i*140,210)
-spike(12000+i*140,320)
-
-}
+generateLevel()
 
 /* COLLISION */
 
-function collide(a,b){
+function hit(px,py,ox,oy){
 
-const A=a.getBoundingClientRect()
-const B=b.getBoundingClientRect()
+return(
+px<ox+30 &&
+px+20>ox &&
+py<oy+30 &&
+py+20>oy
+)
 
-return !(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)
+}
+
+/* UPDATE */
+
+function update(){
+
+if(holding){
+player.y+=wavePower
+}else{
+player.y-=wavePower
+}
+
+player.x+=speed
+
+addTrail(player.x,player.y)
+
+/* portals */
+
+portals.forEach(p=>{
+if(hit(player.x,player.y,p.x,350)){
+speed=p.speed
+}
+})
+
+/* spikes */
+
+spikesTop.forEach(s=>{
+if(hit(player.x,player.y,s.x,s.y)) death()
+})
+
+spikesBottom.forEach(s=>{
+if(hit(player.x,player.y,s.x,s.y)) death()
+})
+
+/* progress */
+
+let progress=(player.x/65000)*100
+bar.style.width=progress+"%"
 
 }
 
@@ -253,103 +203,196 @@ return !(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)
 
 function death(){
 
-dead=true
-deathText.style.display="block"
-
-setTimeout(()=>location.reload(),1200)
+player.x=200
+player.y=350
+speed=6
+trail=[]
 
 }
 
-/* COMPLETE */
+/* BACKGROUND */
 
-function complete(){
+let scroll=0
 
-dead=true
-completeText.style.display="block"
+function drawBG(){
+
+scroll+=speed*0.2
+
+let grad=ctx.createLinearGradient(0,0,0,canvas.height)
+
+grad.addColorStop(0,"#ff3aa5")
+grad.addColorStop(1,"#ff8be0")
+
+ctx.fillStyle=grad
+ctx.fillRect(0,0,canvas.width,canvas.height)
+
+/* stars */
+
+ctx.fillStyle="rgba(255,255,255,0.2)"
+
+for(let i=0;i<80;i++){
+
+let x=(i*200-scroll)%canvas.width
+let y=(i*97)%canvas.height
+
+ctx.fillRect(x,y,2,2)
+
+}
+
+}
+
+/* SPIKES */
+
+function drawSpikes(){
+
+ctx.shadowBlur=35
+ctx.shadowColor="#ff2ea3"
+
+ctx.fillStyle="#ff2ea3"
+
+spikesTop.forEach(s=>{
+
+let x=s.x-player.x+200
+
+ctx.beginPath()
+ctx.moveTo(x,s.y)
+ctx.lineTo(x+20,s.y+40)
+ctx.lineTo(x-20,s.y+40)
+ctx.fill()
+
+})
+
+spikesBottom.forEach(s=>{
+
+let x=s.x-player.x+200
+
+ctx.beginPath()
+ctx.moveTo(x,s.y+40)
+ctx.lineTo(x+20,s.y)
+ctx.lineTo(x-20,s.y)
+ctx.fill()
+
+})
+
+ctx.shadowBlur=0
+
+}
+
+/* PORTALS */
+
+function drawPortals(){
+
+ctx.shadowBlur=30
+ctx.shadowColor="#ff9ae8"
+
+ctx.fillStyle="#ff9ae8"
+
+portals.forEach(p=>{
+
+let x=p.x-player.x+200
+
+ctx.beginPath()
+ctx.arc(x,350,22,0,Math.PI*2)
+ctx.fill()
+
+})
+
+ctx.shadowBlur=0
 
 }
 
 /* TRAIL */
 
-function trail(){
+function drawTrail(){
 
-const t=document.createElement("div")
-t.className="trail"
+ctx.fillStyle="white"
 
-t.style.left=(player.offsetLeft+12)+"px"
-t.style.top=(player.offsetTop+12)+"px"
+trail.forEach(t=>{
 
-game.appendChild(t)
+ctx.globalAlpha=t.life/25
 
-setTimeout(()=>t.remove(),200)
-
-}
-
-/* GAME LOOP */
-
-function loop(){
-
-if(dead)return
-
-let wavePower=mini?4:5
-
-if(holding){
-
-y+=wavePower
-player.style.transform="rotate(-35deg)"
-
-}else{
-
-y-=wavePower
-player.style.transform="rotate(35deg)"
-
-}
-
-y=Math.max(0,Math.min(window.innerHeight-40,y))
-player.style.bottom=y+"px"
-
-/* MOVE OBJECTS */
-
-objects.forEach(o=>{
-
-let x=parseFloat(o.style.left)
-
-x-=speed
-o.style.left=x+"px"
-
-if(collide(player,o)){
-
-if(o.className==="portal"){
-
-if(!mini){
-
-mini=true
-player.style.transform+=" scale(0.7)"
-
-}else{
-
-speed+=1
-
-}
-
-o.remove()
-
-}else{
-
-death()
-
-}
-
-}
+ctx.fillRect(
+t.x-player.x+200,
+t.y,
+4,
+4
+)
 
 })
 
-progress+=0.03
-bar.style.width=progress+"%"
+ctx.globalAlpha=1
 
-if(progress>=100)complete()
+}
 
-trail()
+/* PLAYER */
+
+function drawPlayer(){
+
+ctx.shadowBlur=20
+ctx.shadowColor="white"
+
+ctx.fillStyle="white"
+
+ctx.save()
+
+ctx.translate(200,player.y)
+
+ctx.rotate(holding?-0.6:0.6)
+
+ctx.beginPath()
+ctx.moveTo(-12,-10)
+ctx.lineTo(12,0)
+ctx.lineTo(-12,10)
+ctx.fill()
+
+ctx.restore()
+
+ctx.shadowBlur=0
+
+}
+
+/* ASHLEY DECOR */
+
+function drawAshley(){
+
+ctx.globalAlpha=0.2
+ctx.fillStyle="#ffc1ea"
+
+ctx.beginPath()
+ctx.arc(120,200,70,0,Math.PI*2)
+ctx.fill()
+
+ctx.beginPath()
+ctx.arc(100,180,12,0,Math.PI*2)
+ctx.fill()
+
+ctx.beginPath()
+ctx.arc(140,180,12,0,Math.PI*2)
+ctx.fill()
+
+ctx.globalAlpha=1
+
+}
+
+/* DRAW */
+
+function draw(){
+
+drawBG()
+drawAshley()
+drawSpikes()
+drawPortals()
+drawTrail()
+drawPlayer()
+
+}
+
+/* LOOP */
+
+function loop(){
+
+update()
+draw()
 
 requestAnimationFrame(loop)
 
